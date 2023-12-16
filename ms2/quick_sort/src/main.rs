@@ -54,17 +54,32 @@ fn get_i32(prompt: &str) -> i32 {
         .expect("Error parsing integer");
 }
 
+fn check_sorted(vec: &Vec<i32>) {
+    let mut sorted = true;
+    let mut i = 0;
+    while sorted && i < vec.len() - 1 {
+        sorted = vec[i] <= vec[i + 1];
+        i += 1;
+    }
+    if sorted {
+        println!("The vector is sorted!");
+    } else {
+        println!("The vector is NOT sorted!");
+    }
+}
+
 fn partition(vec:&mut [i32]) -> usize {
     let hi = vec.len() - 1;
     let pivot = vec[hi];
-    let mut i = hi;
-    for j in 0..(hi - 1) {
-        while vec[j] > pivot  {
-            i -= 1;
-            (vec[i], vec[j]) = (vec[j], vec[i]);
+    let mut i = 0;
+    for j in 0..hi {
+        if pivot >= vec[j]  {
+            if j != i {
+                (vec[i], vec[j]) = (vec[j], vec[i]);
+            }
+            i += 1;
         }
     }
-    i-=1;
     (vec[i], vec[hi]) = (vec[hi], vec[i]);
     return i;
 }
@@ -83,8 +98,9 @@ fn quick_sort(vec:&mut [i32]) {
         },
         _ => {
             let p = partition(vec);
+            let upper_partition = if p == vec.len() - 1 {p} else {p + 1};
             quick_sort(&mut vec[0..p]);
-            quick_sort(&mut vec[(p + 1)..]);
+            quick_sort(&mut vec[upper_partition..]);
         }
     }
 
@@ -97,5 +113,5 @@ fn main() {
     print_vec(&vec, num_items);
     quick_sort(vec.as_mut_slice());
     print_vec(&vec, num_items);
-    //check_sorted(&vec); 
+    check_sorted(&vec); 
 }

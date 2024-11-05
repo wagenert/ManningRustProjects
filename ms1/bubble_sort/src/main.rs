@@ -14,30 +14,28 @@ fn make_random_vec(num_items: i32, max: i32) -> Vec<i32> {
     for _ in 0..num_items {
         vec.push(prng.next_i32(0, max));
     }
-    return vec;
+    vec
 }
 
 // Print at most num_items items.
-fn print_vec(vec: &Vec<i32>, num_items: i32) {
+fn print_vec(vec: &[i32], num_items: i32) {
     let mut max = vec.len();
     if max > num_items as usize {
         max = num_items as usize;
     }
 
     let mut string = String::new();
-    string.push_str("[");
+    string.push('[');
 
     if max > 0usize {
         string.push_str(&vec[0].to_string());
     }
 
-    for i in 1usize..max {
-        string.push_str(" ");
-        string.push_str(&vec[i].to_string());
-    }
-    string.push_str("]");
+    vec.iter().for_each(|&x| string.push_str(&x.to_string()));
+    string.push(']');
     println!("{string}");
 }
+
 // ...
 // Prompt the user for an i32.
 fn get_i32(prompt: &str) -> i32 {
@@ -50,23 +48,20 @@ fn get_i32(prompt: &str) -> i32 {
         .expect("Error reading input");
 
     let trimmed = str_value.trim();
-    return trimmed.parse::<i32>()
-        .expect("Error parsing integer");
+    trimmed.parse::<i32>().expect("Error parsing integer")
 }
 
-fn bubble_sort(vec: &mut Vec<i32>) {
+fn bubble_sort(vec: &mut [i32]) {
     for i in 1..vec.len() {
         for j in 0..(vec.len() - i) {
-            if vec[j] > vec[j+1] {
-                let temp = vec[j + 1];
-                vec[j + 1] = vec[j];
-                vec[j] = temp;
+            if vec[j] > vec[j + 1] {
+                vec.swap(j + 1, j);
             }
         }
     }
 }
 
-fn check_sorted(vec: &Vec<i32>) {
+fn check_sorted(vec: &[i32]) {
     let mut sorted = true;
     let mut i = 0;
     while sorted && i < vec.len() - 1 {
@@ -87,5 +82,5 @@ fn main() {
     print_vec(&vec, num_items);
     bubble_sort(&mut vec);
     print_vec(&vec, num_items);
-    check_sorted(&vec); 
+    check_sorted(&vec);
 }

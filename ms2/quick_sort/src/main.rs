@@ -14,28 +14,26 @@ fn make_random_vec(num_items: i32, max: i32) -> Vec<i32> {
     for _ in 0..num_items {
         vec.push(prng.next_i32(0, max));
     }
-    return vec;
+    vec
 }
 
 // Print at most num_items items.
-fn print_vec(vec: &Vec<i32>, num_items: i32) {
+fn print_vec(vec: &[i32], num_items: i32) {
     let mut max = vec.len();
     if max > num_items as usize {
         max = num_items as usize;
     }
 
     let mut string = String::new();
-    string.push_str("[");
+    string.push('[');
 
     if max > 0usize {
         string.push_str(&vec[0].to_string());
     }
 
-    for i in 1usize..max {
-        string.push_str(" ");
-        string.push_str(&vec[i].to_string());
-    }
-    string.push_str("]");
+    vec.iter()
+        .for_each(|&x| string.push_str(&format!(" {}", x)));
+    string.push(']');
     println!("{string}");
 }
 // ...
@@ -50,11 +48,10 @@ fn get_i32(prompt: &str) -> i32 {
         .expect("Error reading input");
 
     let trimmed = str_value.trim();
-    return trimmed.parse::<i32>()
-        .expect("Error parsing integer");
+    trimmed.parse::<i32>().expect("Error parsing integer")
 }
 
-fn check_sorted(vec: &Vec<i32>) {
+fn check_sorted(vec: &[i32]) {
     let mut sorted = true;
     let mut i = 0;
     while sorted && i < vec.len() - 1 {
@@ -68,12 +65,12 @@ fn check_sorted(vec: &Vec<i32>) {
     }
 }
 
-fn partition(vec:&mut [i32]) -> usize {
+fn partition(vec: &mut [i32]) -> usize {
     let hi = vec.len() - 1;
     let pivot = vec[hi];
     let mut i = 0;
     for j in 0..hi {
-        if pivot >= vec[j]  {
+        if pivot >= vec[j] {
             if j != i {
                 (vec[i], vec[j]) = (vec[j], vec[i]);
             }
@@ -81,29 +78,25 @@ fn partition(vec:&mut [i32]) -> usize {
         }
     }
     (vec[i], vec[hi]) = (vec[hi], vec[i]);
-    return i;
+    i
 }
 
-fn quick_sort(vec:&mut [i32]) {
+fn quick_sort(vec: &mut [i32]) {
     match vec.len() {
-        0 => 
-            return,
-        1 => 
-            return,
+        0 => (),
+        1 => (),
         2 => {
             if vec[0] > vec[1] {
                 (vec[0], vec[1]) = (vec[1], vec[0]);
-            } 
-            return;
-        },
+            }
+        }
         _ => {
             let p = partition(vec);
-            let upper_partition = if p == vec.len() - 1 {p} else {p + 1};
+            let upper_partition = if p == vec.len() - 1 { p } else { p + 1 };
             quick_sort(&mut vec[0..p]);
             quick_sort(&mut vec[upper_partition..]);
         }
     }
-
 }
 
 fn main() {
@@ -113,5 +106,5 @@ fn main() {
     print_vec(&vec, num_items);
     quick_sort(vec.as_mut_slice());
     print_vec(&vec, num_items);
-    check_sorted(&vec); 
+    check_sorted(&vec);
 }

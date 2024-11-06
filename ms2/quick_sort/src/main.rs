@@ -31,7 +31,8 @@ fn print_vec(vec: &[i32], num_items: i32) {
         string.push_str(&vec[0].to_string());
     }
 
-    vec.iter()
+    vec[0..num_items as usize]
+        .iter()
         .for_each(|&x| string.push_str(&format!(" {}", x)));
     string.push(']');
     println!("{string}");
@@ -68,17 +69,23 @@ fn check_sorted(vec: &[i32]) {
 fn partition(vec: &mut [i32]) -> usize {
     let hi = vec.len() - 1;
     let pivot = vec[hi];
-    let mut i = 0;
-    for j in 0..hi {
-        if pivot >= vec[j] {
-            if j != i {
-                (vec[i], vec[j]) = (vec[j], vec[i]);
-            }
-            i += 1;
-        }
-    }
-    (vec[i], vec[hi]) = (vec[hi], vec[i]);
-    i
+    let (mut left, mut right) =
+        vec[0..hi]
+            .iter()
+            .fold((Vec::new(), Vec::new()), |(mut left, mut right), &x| {
+                if x < pivot {
+                    left.push(x);
+                } else {
+                    right.push(x);
+                }
+                (left, right)
+            });
+    let pos = left.len();
+    left.push(pivot);
+    left.append(&mut right);
+    vec.copy_from_slice(&left);
+
+    pos
 }
 
 fn quick_sort(vec: &mut [i32]) {
@@ -86,8 +93,9 @@ fn quick_sort(vec: &mut [i32]) {
         0 => (),
         1 => (),
         2 => {
+            // if vec is not sorted, swap the two elements.
             if vec[0] > vec[1] {
-                (vec[0], vec[1]) = (vec[1], vec[0]);
+                vec.swap(0, 1);
             }
         }
         _ => {
@@ -103,8 +111,43 @@ fn main() {
     let num_items = get_i32("Please specify number of items to be sorted: ");
     let max = get_i32("Please specify the maximum value for an item: ");
     let mut vec = make_random_vec(num_items, max);
-    print_vec(&vec, num_items);
-    quick_sort(vec.as_mut_slice());
-    print_vec(&vec, num_items);
+    print_vec(&vec, 10);
+    quick_sort(&mut vec);
+    print_vec(&vec, 10);
     check_sorted(&vec);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_partition() {
+        let mut vec = vec![3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5];
+        let p = partition(&mut vec);
+        assert_eq!(p, 6);
+    }
+
+    #[test]
+    fn test_quick_sort() {
+        let mut vec = vec![3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5];
+        quick_sort(&mut vec);
+        assert_eq!(vec, vec![1, 1, 2, 3, 3, 4, 5, 5, 5, 6, 9]);
+    }
+
+    #[test]
+    fn test_vectors_are_identical() {
+        let mut vec = vec![3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5];
+        let vec2 = vec.clone();
+        quick_sort(&mut vec);
+        let (identical, res) = vec.iter().fold((true, vec2), |(identical, mut vec2), x| {
+            if let Some(pos) = vec2.iter().position(|&y| y == *x) {
+                vec2.remove(pos);
+                (identical, vec2)
+            } else {
+                (false, vec2)
+            }
+        });
+        assert!(identical && res.is_empty());
+    }
 }

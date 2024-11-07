@@ -69,21 +69,21 @@ fn check_sorted(vec: &[i32]) {
 fn partition(vec: &mut [i32]) -> usize {
     let hi = vec.len() - 1;
     let pivot = vec[hi];
-    let (mut left, mut right) =
+    let (mut lower, mut higher) =
         vec[0..hi]
             .iter()
-            .fold((Vec::new(), Vec::new()), |(mut left, mut right), &x| {
+            .fold((Vec::new(), Vec::new()), |(mut lower, mut bigger), &x| {
                 if x < pivot {
-                    left.push(x);
+                    lower.push(x);
                 } else {
-                    right.push(x);
+                    bigger.push(x);
                 }
-                (left, right)
+                (lower, bigger)
             });
-    let pos = left.len();
-    left.push(pivot);
-    left.append(&mut right);
-    vec.copy_from_slice(&left);
+    let pos = lower.len();
+    lower.push(pivot);
+    lower.append(&mut higher);
+    vec.copy_from_slice(&lower);
 
     pos
 }

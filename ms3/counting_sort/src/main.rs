@@ -5,7 +5,7 @@ use std::io::{self, Write};
 
 use prng::Prng;
 
-#[derive(Default, Clone)]
+#[derive(Debug, Default, Clone)]
 struct Customer {
     id: String,
     num_purchases: i32,
@@ -53,11 +53,7 @@ fn print_vec(vec: &[Customer], num_items: i32) {
     let mut string = String::new();
     string.push('[');
 
-    if max > 0usize {
-        string.push_str(&vec[0].to_string());
-    }
-
-    vec[0..num_items as usize]
+    vec[0..max]
         .iter()
         .for_each(|x| string.push_str(&format!(" {}", x)));
     string.push(']');
@@ -124,4 +120,81 @@ fn main() {
     check_sorted(&sorted_vec);
 
     print_vec(&sorted_vec, 10);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_counting_sort() {
+        let v = vec![
+            Customer {
+                id: "C1".to_string(),
+                num_purchases: 5,
+            },
+            Customer {
+                id: "C2".to_string(),
+                num_purchases: 3,
+            },
+            Customer {
+                id: "C3".to_string(),
+                num_purchases: 1,
+            },
+            Customer {
+                id: "C4".to_string(),
+                num_purchases: 8,
+            },
+            Customer {
+                id: "C5".to_string(),
+                num_purchases: 2,
+            },
+        ];
+        let expected = vec![
+            Customer {
+                id: "C3".to_string(),
+                num_purchases: 1,
+            },
+            Customer {
+                id: "C5".to_string(),
+                num_purchases: 2,
+            },
+            Customer {
+                id: "C2".to_string(),
+                num_purchases: 3,
+            },
+            Customer {
+                id: "C1".to_string(),
+                num_purchases: 5,
+            },
+            Customer {
+                id: "C4".to_string(),
+                num_purchases: 8,
+            },
+        ];
+        let result = counting_sort(&v, 8);
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_same_elements() {
+        let max = 100;
+        let v = make_random_vec(10_000, max);
+        let mut result = counting_sort(&v, max);
+        let (identical, res) = v
+            .iter()
+            .fold((true, &mut result), |(is_identical, res), elem| {
+                if is_identical {
+                    if let Some(pos) = res.iter().position(|e| e == elem) {
+                        res.remove(pos);
+                        (is_identical, res)
+                    } else {
+                        (false, res)
+                    }
+                } else {
+                    (is_identical, res)
+                }
+            });
+        assert!(identical && res.is_empty());
+    }
 }

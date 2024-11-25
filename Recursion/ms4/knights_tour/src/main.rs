@@ -34,11 +34,12 @@ fn move_knight(
 // Return true or false to indicate whether we have found a solution.
 fn find_tour(
     board: &mut [[i32; NUM_COLS]; NUM_ROWS],
-    offsets: &mut [[i32; 2]; 8], // 8 possible moves, 2 coordinates each.
+    offsets: &[[i32; 2]; 8], // 8 possible moves, 2 coordinates each.
     cur_row: i32,
     cur_col: i32,
     num_visited: i32,
 ) -> bool {
+    board[cur_row as usize][cur_col as usize] = num_visited;
     match num_visited {
         // If we have visited all squares, we are done.
         BOARD_SIZE if !REQUIRE_CLOSED_TOUR => true,
@@ -59,21 +60,24 @@ fn find_tour(
             false
         }
         _ => {
-            board[cur_row as usize][cur_col as usize] = num_visited;
-            let mut next_fields = offsets
+            let next_fields = offsets
                 .iter()
-                .map(|offset| move_knight(board, cur_row, cur_col, &offset))
-                .filter(|field| field.is_some())
-                .map(|opt_field| opt_field.unwrap());
+                // filter_map is like map, but it also filters out None values.
+                .filter_map(|offset| move_knight(board, cur_row, cur_col, offset))
+                // Need to collect the iterator into a vector to avoid borrowing issues.
+                .collect::<Vec<(usize, usize)>>();
 
-            next_fields.any(|(row, col)| {
-                if find_tour(board, offsets, row as i32, col as i32, num_visited + 1) {
-                    return true;
-                }
-                board[row][col] = UNVISITED;
-                false
-            })
-            // iterate over the possible moves
+            let has_solution = next_fields.iter().any(|(row, col)| {
+                find_tour(board, offsets, *row as i32, *col as i32, num_visited + 1)
+            });
+
+            // if there is a solution return true
+            if has_solution {
+                return true;
+            }
+            // if there is no solution mark the current field as unvisited and return false
+            board[cur_row as usize][cur_col as usize] = UNVISITED;
+            false
         }
     }
 }
@@ -89,7 +93,7 @@ fn dump_board(board: &mut [[i32; NUM_COLS]; NUM_ROWS]) {
 
 fn main() {
     // Initialize the vector of move offsets.
-    let mut offsets = [
+    let offsets = [
         [-2, -1],
         [-1, -2],
         [2, -1],
@@ -108,7 +112,7 @@ fn main() {
 
     // Try to find a tour.
     let start = Instant::now();
-    let success = find_tour(&mut board, &mut offsets, 0, 0, 1);
+    let success = find_tour(&mut board, &offsets, 0, 0, 1);
     let duration = start.elapsed();
     println!("Time: {:?}", duration);
 

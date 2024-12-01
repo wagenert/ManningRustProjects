@@ -15,8 +15,8 @@ const UNVISITED: i32 = -1;
 
 fn move_knight(
     board: &[[i32; NUM_COLS]; NUM_ROWS],
-    row: i32,
-    col: i32,
+    row: &i32,
+    col: &i32,
     offset: &[i32; 2],
 ) -> Option<(usize, usize)> {
     let new_row = row + offset[0];
@@ -29,6 +29,39 @@ fn move_knight(
         return Some((new_row as usize, new_col as usize));
     }
     None
+}
+
+fn move_knight_warendorff(
+    board: &[[i32; NUM_COLS]; NUM_ROWS],
+    offsets: &[[i32; 2]; 8],
+    cur_row: &i32,
+    cur_col: &i32,
+) -> Option<Vec<(usize, usize)>> {
+    let mut next_fields = offsets
+        .iter()
+        // filter_map is like map, but it also filters out None values.
+        .filter_map(|offset| move_knight(board, cur_row, cur_col, offset))
+        // Need to collect the iterator into a vector to avoid borrowing issues.
+        .collect::<Vec<(usize, usize)>>();
+
+    if next_fields.is_empty() {
+        return None;
+    }
+
+    next_fields.sort_by(|(row1, col1), (row2, col2)| {
+        let a = offsets
+            .iter()
+            .filter_map(|offset| move_knight(board, &(*row1 as i32), &(*col1 as i32), offset))
+            .collect::<Vec<(usize, usize)>>()
+            .len();
+        let b = offsets
+            .iter()
+            .filter_map(|offset| move_knight(board, &(*row2 as i32), &(*col2 as i32), offset))
+            .collect::<Vec<(usize, usize)>>()
+            .len();
+        a.cmp(&b)
+    });
+    Some(next_fields)
 }
 // Try to extend a knight's tour starting at (start_row, start_col).
 // Return true or false to indicate whether we have found a solution.
@@ -46,7 +79,7 @@ fn find_tour(
         // If we have visited all squares and we are back at the start, we are done.
         BOARD_SIZE if REQUIRE_CLOSED_TOUR => {
             if offsets.iter().any(|&offset| {
-                if let Some((row, col)) = move_knight(board, cur_row, cur_col, &offset) {
+                if let Some((row, col)) = move_knight(board, &cur_row, &cur_col, &offset) {
                     if board[row][col] == 0 {
                         return true;
                     }
@@ -60,24 +93,15 @@ fn find_tour(
             false
         }
         _ => {
-            let next_fields = offsets
-                .iter()
-                // filter_map is like map, but it also filters out None values.
-                .filter_map(|offset| move_knight(board, cur_row, cur_col, offset))
-                // Need to collect the iterator into a vector to avoid borrowing issues.
-                .collect::<Vec<(usize, usize)>>();
-
-            let has_solution = next_fields.iter().any(|(row, col)| {
-                find_tour(board, offsets, *row as i32, *col as i32, num_visited + 1)
-            });
-
-            // if there is a solution return true
-            if has_solution {
-                return true;
+            if let Some(next_fields) = move_knight_warendorff(board, offsets, &cur_row, &cur_col) {
+                next_fields.iter().any(|(row, col)| {
+                    find_tour(board, offsets, *row as i32, *col as i32, num_visited + 1)
+                })
+            } else {
+                // if there is no solution mark the current field as unvisited and return false
+                board[cur_row as usize][cur_col as usize] = UNVISITED;
+                false
             }
-            // if there is no solution mark the current field as unvisited and return false
-            board[cur_row as usize][cur_col as usize] = UNVISITED;
-            false
         }
     }
 }

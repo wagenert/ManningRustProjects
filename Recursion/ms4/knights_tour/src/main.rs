@@ -15,8 +15,8 @@ const UNVISITED: i32 = -1;
 
 fn move_knight(
     board: &[[i32; NUM_COLS]; NUM_ROWS],
-    row: i32,
-    col: i32,
+    row: &i32,
+    col: &i32,
     offset: &[i32; 2],
 ) -> Option<(usize, usize)> {
     let new_row = row + offset[0];
@@ -80,7 +80,7 @@ fn find_tour(
         // If we have visited all squares and we are back at the start, we are done.
         BOARD_SIZE if REQUIRE_CLOSED_TOUR => {
             if offsets.iter().any(|&offset| {
-                if let Some((row, col)) = move_knight(board, cur_row, cur_col, &offset) {
+                if let Some((row, col)) = move_knight(board, &cur_row, &cur_col, &offset) {
                     if board[row][col] == 0 {
                         return true;
                     }
@@ -103,9 +103,6 @@ fn find_tour(
                     return true;
                 }
             }
-            // if there is no solution mark the current field as unvisited and return false
-            board[cur_row as usize][cur_col as usize] = UNVISITED;
-            false
         }
     }
 }

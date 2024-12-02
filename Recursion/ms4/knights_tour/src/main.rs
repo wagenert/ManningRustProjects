@@ -8,27 +8,46 @@ const INUM_COLS: i32 = NUM_COLS as i32;
 
 const BOARD_SIZE: i32 = INUM_ROWS * INUM_COLS;
 // Whether we want an open or closed tour.
-const REQUIRE_CLOSED_TOUR: bool = true;
+const REQUIRE_CLOSED_TOUR: bool = false;
 
 // Value to represent a square that we have not visited.
 const UNVISITED: i32 = -1;
 
-fn move_knight(
+fn find_fields(
     board: &[[i32; NUM_COLS]; NUM_ROWS],
     row: &i32,
     col: &i32,
     offset: &[i32; 2],
+    target_value: &i32,
 ) -> Option<(usize, usize)> {
     let new_row = row + offset[0];
     let new_col = col + offset[1];
 
     if (0..INUM_ROWS).contains(&new_row)
         && (0..INUM_COLS).contains(&new_col)
-        && board[new_row as usize][new_col as usize] == UNVISITED
+        && board[new_row as usize][new_col as usize] == *target_value
     {
         return Some((new_row as usize, new_col as usize));
     }
     None
+}
+
+fn find_possible_moves(
+    board: &[[i32; NUM_COLS]; NUM_ROWS],
+    row: &i32,
+    col: &i32,
+    offset: &[i32; 2],
+) -> Option<(usize, usize)> {
+    find_fields(board, row, col, offset, &UNVISITED)
+}
+
+fn is_end_of_cyclic_tour(
+    board: &[[i32; NUM_COLS]; NUM_ROWS],
+    row: &i32,
+    col: &i32,
+    offset: &[i32; 2],
+) -> bool {
+    find_fields(board, row, col, offset, &0).is_some()
 }
 
 fn move_knight_warnsdorff(
@@ -40,7 +59,7 @@ fn move_knight_warnsdorff(
     // get all possible valid moves
     let mut next_fields: Vec<(usize, usize)> = offsets
         .iter()
-        .filter_map(|offset| move_knight(board, &row, &col, offset))
+        .filter_map(|offset| find_possible_moves(board, &row, &col, offset))
         .collect();
 
     // if there are no valid moves return None
@@ -52,11 +71,11 @@ fn move_knight_warnsdorff(
     next_fields.sort_by(|a, b| {
         let a = offsets
             .iter()
-            .filter_map(|offset| move_knight(board, &(a.0 as i32), &(a.1 as i32), offset))
+            .filter_map(|offset| find_possible_moves(board, &(a.0 as i32), &(a.1 as i32), offset))
             .count();
         let b = offsets
             .iter()
-            .filter_map(|offset| move_knight(board, &(b.0 as i32), &(b.1 as i32), offset))
+            .filter_map(|offset| find_possible_moves(board, &(b.0 as i32), &(b.1 as i32), offset))
             .count();
         a.cmp(&b)
     });
@@ -73,31 +92,32 @@ fn find_tour(
     cur_col: i32,
     num_visited: i32,
 ) -> bool {
-    board[cur_row as usize][cur_col as usize] = num_visited;
     match num_visited {
-        // If we have visited all squares, we are done.
+        // We have visited all squares. Done.
         BOARD_SIZE if !REQUIRE_CLOSED_TOUR => true,
-        // If we have visited all squares and we are back at the start, we are done.
-        BOARD_SIZE if REQUIRE_CLOSED_TOUR => offsets.iter().any(|&offset| {
-            if let Some((row, col)) = move_knight(board, &cur_row, &cur_col, &offset) {
-                if board[row][col] == 0 {
-                    return true;
-                }
-            }
-            false
-        }),
+        // Check if the first square is reachable from the current position.
+        BOARD_SIZE if REQUIRE_CLOSED_TOUR => offsets
+            .iter()
+            .any(|&offset| is_end_of_cyclic_tour(board, &cur_row, &cur_col, &offset)),
         _ => {
+            // Try to identify next square
             if let Some(next_fields) = move_knight_warnsdorff(board, cur_row, cur_col, offsets) {
-                let has_solution = next_fields.iter().any(|(row, col)| {
-                    find_tour(board, offsets, *row as i32, *col as i32, num_visited + 1)
-                });
-
-                if has_solution {
-                    return true;
-                }
+                next_fields.iter().any(|(row, col)| {
+                    // Set the possible next square to the current number of visited squares and descent to the next level.
+                    board[*row][*col] = num_visited;
+                    // If that path delivers a successfull solution return true.
+                    if find_tour(board, offsets, *row as i32, *col as i32, num_visited + 1) {
+                        true
+                    } else {
+                        // Trace back by setting the square to UNVISITED.
+                        board[*row][*col] = UNVISITED;
+                        false
+                    }
+                })
+            } else {
+                // No more squares to visit. Trace back.
+                false
             }
-            board[cur_row as usize][cur_col as usize] = UNVISITED;
-            false
         }
     }
 }
@@ -126,7 +146,7 @@ fn main() {
 
     // Create a NUM_ROWS x NUM_COLS vector with all entries Initialized to UNVISITED.
     let mut board = [[UNVISITED; NUM_COLS]; NUM_ROWS];
-    let starting_position = (3, 3);
+    let starting_position = (5, 5);
     // Start at board[0][0].
     board[starting_position.0 as usize][starting_position.1 as usize] = 0;
 

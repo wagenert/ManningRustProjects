@@ -103,6 +103,8 @@ fn find_tour(
                     return true;
                 }
             }
+            board[cur_row as usize][cur_col as usize] = UNVISITED;
+            false
         }
     }
 }

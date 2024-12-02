@@ -30,6 +30,40 @@ fn move_knight(
     }
     None
 }
+
+fn move_knight_warnsdorff(
+    board: &[[i32; NUM_COLS]; NUM_ROWS],
+    row: i32,
+    col: i32,
+    offsets: &[[i32; 2]; 8],
+) -> Option<Vec<(usize, usize)>> {
+    // get all possible valid moves
+    let mut next_fields: Vec<(usize, usize)> = offsets
+        .iter()
+        .filter_map(|offset| move_knight(board, row, col, offset))
+        .collect();
+
+    // if there are no valid moves return None
+    if next_fields.is_empty() {
+        return None;
+    }
+
+    // sort the moves by the number of possible moves from that field
+    next_fields.sort_by(|a, b| {
+        let a = offsets
+            .iter()
+            .filter_map(|offset| move_knight(board, a.0 as i32, a.1 as i32, offset))
+            .count();
+        let b = offsets
+            .iter()
+            .filter_map(|offset| move_knight(board, b.0 as i32, b.1 as i32, offset))
+            .count();
+        a.cmp(&b)
+    });
+
+    Some(next_fields)
+}
+
 // Try to extend a knight's tour starting at (start_row, start_col).
 // Return true or false to indicate whether we have found a solution.
 fn find_tour(
@@ -60,20 +94,14 @@ fn find_tour(
             false
         }
         _ => {
-            let next_fields = offsets
-                .iter()
-                // filter_map is like map, but it also filters out None values.
-                .filter_map(|offset| move_knight(board, cur_row, cur_col, offset))
-                // Need to collect the iterator into a vector to avoid borrowing issues.
-                .collect::<Vec<(usize, usize)>>();
+            if let Some(next_fields) = move_knight_warnsdorff(board, cur_row, cur_col, offsets) {
+                let has_solution = next_fields.iter().any(|(row, col)| {
+                    find_tour(board, offsets, *row as i32, *col as i32, num_visited + 1)
+                });
 
-            let has_solution = next_fields.iter().any(|(row, col)| {
-                find_tour(board, offsets, *row as i32, *col as i32, num_visited + 1)
-            });
-
-            // if there is a solution return true
-            if has_solution {
-                return true;
+                if has_solution {
+                    return true;
+                }
             }
             // if there is no solution mark the current field as unvisited and return false
             board[cur_row as usize][cur_col as usize] = UNVISITED;
@@ -108,7 +136,7 @@ fn main() {
     let mut board = [[UNVISITED; NUM_COLS]; NUM_ROWS];
 
     // Start at board[0][0].
-    board[0][0] = 0;
+    board[7][7] = 0;
 
     // Try to find a tour.
     let start = Instant::now();

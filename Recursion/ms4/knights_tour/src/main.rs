@@ -8,7 +8,7 @@ const INUM_COLS: i32 = NUM_COLS as i32;
 
 const BOARD_SIZE: i32 = INUM_ROWS * INUM_COLS;
 // Whether we want an open or closed tour.
-const REQUIRE_CLOSED_TOUR: bool = false;
+const REQUIRE_CLOSED_TOUR: bool = true;
 
 // Value to represent a square that we have not visited.
 const UNVISITED: i32 = -1;
@@ -40,7 +40,7 @@ fn move_knight_warnsdorff(
     // get all possible valid moves
     let mut next_fields: Vec<(usize, usize)> = offsets
         .iter()
-        .filter_map(|offset| move_knight(board, row, col, offset))
+        .filter_map(|offset| move_knight(board, &row, &col, offset))
         .collect();
 
     // if there are no valid moves return None
@@ -52,11 +52,11 @@ fn move_knight_warnsdorff(
     next_fields.sort_by(|a, b| {
         let a = offsets
             .iter()
-            .filter_map(|offset| move_knight(board, a.0 as i32, a.1 as i32, offset))
+            .filter_map(|offset| move_knight(board, &(a.0 as i32), &(a.1 as i32), offset))
             .count();
         let b = offsets
             .iter()
-            .filter_map(|offset| move_knight(board, b.0 as i32, b.1 as i32, offset))
+            .filter_map(|offset| move_knight(board, &(b.0 as i32), &(b.1 as i32), offset))
             .count();
         a.cmp(&b)
     });
@@ -78,21 +78,14 @@ fn find_tour(
         // If we have visited all squares, we are done.
         BOARD_SIZE if !REQUIRE_CLOSED_TOUR => true,
         // If we have visited all squares and we are back at the start, we are done.
-        BOARD_SIZE if REQUIRE_CLOSED_TOUR => {
-            if offsets.iter().any(|&offset| {
-                if let Some((row, col)) = move_knight(board, &cur_row, &cur_col, &offset) {
-                    if board[row][col] == 0 {
-                        return true;
-                    }
-                    false
-                } else {
-                    false
+        BOARD_SIZE if REQUIRE_CLOSED_TOUR => offsets.iter().any(|&offset| {
+            if let Some((row, col)) = move_knight(board, &cur_row, &cur_col, &offset) {
+                if board[row][col] == 0 {
+                    return true;
                 }
-            }) {
-                return true;
             }
             false
-        }
+        }),
         _ => {
             if let Some(next_fields) = move_knight_warnsdorff(board, cur_row, cur_col, offsets) {
                 let has_solution = next_fields.iter().any(|(row, col)| {
@@ -133,13 +126,19 @@ fn main() {
 
     // Create a NUM_ROWS x NUM_COLS vector with all entries Initialized to UNVISITED.
     let mut board = [[UNVISITED; NUM_COLS]; NUM_ROWS];
-
+    let starting_position = (3, 3);
     // Start at board[0][0].
-    board[7][7] = 0;
+    board[starting_position.0 as usize][starting_position.1 as usize] = 0;
 
     // Try to find a tour.
     let start = Instant::now();
-    let success = find_tour(&mut board, &offsets, 0, 0, 1);
+    let success = find_tour(
+        &mut board,
+        &offsets,
+        starting_position.0,
+        starting_position.1,
+        1,
+    );
     let duration = start.elapsed();
     println!("Time: {:?}", duration);
 
